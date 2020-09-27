@@ -1,0 +1,33 @@
+.header-container {
+    display: block;
+    width: 100%;
+    height: 50px;
+    float: left;
+    text-align: left;
+    border: solid 1px black;
+
+    .icon-box {
+        display: inline-block;
+        width: 100px;
+        height: 100%;
+        text-align: center;
+
+        img {
+            height: 90%;
+        }
+    }
+
+    .text-box {
+        display: inline-block;
+        height: 100%;
+        text-align: left;
+        vertical-align: top;
+
+        span {
+            font-weight: bold;
+            font-size: 20pt;
+            line-height: 50px;
+            vertical-align: middle;
+        }
+    }
+}
