@@ -4,7 +4,7 @@
         <img alt="XWD" src="../../assets/logo.png" />
     </div>
     <div class="text-box"> 
-        <span>X Wave Drwaing</span>
+        <span>X Wave Drawing</span>
     </div>
 </div>
 </template>

@@ -26,8 +26,8 @@ export class WaveImageTs extends Vue {
 
     mounted() {
         console.log('wave image created')
-        const wave = SVG().addTo('#wave-space').size(1000, 768);
-        wave.viewbox(0, 0, 1000, 768);
+        const waveClassName = '#wave-space';
+        const wave = this.initSvg(waveClassName, 1, 1);
 
         const waveJson = {
             groups: [
@@ -123,17 +123,36 @@ export class WaveImageTs extends Vue {
         //     Wave.gapNegClock(group[8], 2 * j * Wave.baseWidth, 7 * (Wave.baseHeight + Wave.linePadding), true, '#ffffff');
         // }
 
-        const hoverBox = this.initHoverBox(wave);
-
         // Find your root SVG element
         const svg = document.querySelector('svg') as SVGSVGElement;
+        this.startEventListener(wave, svg);
+    }
+
+    initSvg(className: string, numOfLane: number, numOfCycle: number) {
+        const width = numOfCycle * Wave.baseWidth;
+        const height = numOfLane * Wave.baseHeight;
+        const wave = SVG().addTo(className).size(width, height);
+        wave.viewbox(0, 0, width, height);
+        return wave;
+    }
+
+    resizeSvg(svg: Svg | G, width: number, height: number) {
+        svg.size(width, height);
+        svg.viewbox(0, 0, width, height);
+    }
+
+    startEventListener(svgBox: Svg, svg: SVGSVGElement) {
+        const hoverBox = this.initHoverBox(svgBox);
+
         // Create an SVGPoint for future math
         const pt = svg.createSVGPoint();
+
         // Get point in global SVG space
         function cursorPoint(evt: MouseEvent) {
             pt.x = evt.clientX; pt.y = evt.clientY;
             return pt.matrixTransform((svg.getScreenCTM() as DOMMatrix).inverse());
         }
+
         svg.addEventListener('mousemove', (evt) => {
             const loc = cursorPoint(evt);
             hoverBox.opacity(0.7);
@@ -144,6 +163,16 @@ export class WaveImageTs extends Vue {
             hoverBox.opacity(0);
         }, false);
 
+        svg.addEventListener('click', (evt) => {
+            const loc = cursorPoint(evt);
+            console.log(loc.x, loc.y);
+        }, false);
+        
+        svg.addEventListener('dblclick', (evt) => {
+            const loc = cursorPoint(evt);
+            console.log('dbclick')
+            console.log(loc.x, loc.y);
+        }, false);
     }
 
     findGroup(x: number, y: number) {
@@ -174,6 +203,8 @@ export class WaveImageTs extends Vue {
     drawFromJson(svg: Svg | G, json: string) {
         const wave = JSON.parse(json);
         let numOfGroupSignals: number[] = [];
+        let svgWidth = svg.width();
+        let svgHeight = svg.height();
         if (wave.groups as any[]) {
             this.baseX = 105;
             wave.groups.forEach((group: any, groupIndex: number) => {
@@ -192,12 +223,16 @@ export class WaveImageTs extends Vue {
                     Wave.text(signalNameG, this.padding + 75, this.padding + baseGroupY + signalIndex * (Wave.baseHeight + Wave.linePadding) + (Wave.baseHeight / 2), signal.name, 14);
                     signal.wave.forEach((waveDes: any, waveIndex: number) => {
                         const numOfCycle = (waveDes.to == 'full') ? (this.totalCycle - waveDes.from) : (waveDes.to - waveDes.from + 1);
+                        const signalBaseY = this.baseY + baseGroupY + signalIndex * (Wave.baseHeight + Wave.linePadding);
+                        svgHeight = signalBaseY + Wave.baseHeight + Wave.linePadding;
+                        svgWidth = this.baseX + this.totalCycle * Wave.baseWidth * 2;
+
                         switch (waveDes.type) {
                             case "clk": {
                                 this.drawClk(
                                     signalWaveG,
                                     this.baseX,
-                                    this.baseY + baseGroupY + signalIndex * (Wave.baseHeight + Wave.linePadding),
+                                    signalBaseY,
                                     numOfCycle,
                                     waveDes.isPosEdge,
                                     waveDes.isIdeal,
@@ -212,7 +247,7 @@ export class WaveImageTs extends Vue {
                                 this.drawSignal(
                                     signalWaveG,
                                     this.baseX + waveDes.from * (Wave.baseWidth * 2),
-                                    this.baseY + baseGroupY + signalIndex * (Wave.baseHeight + Wave.linePadding),
+                                    signalBaseY,
                                     numOfCycle,
                                     parsedType,
                                     waveDes.isIdeal
@@ -228,6 +263,8 @@ export class WaveImageTs extends Vue {
                 })
             });
         }
+
+        this.resizeSvg(svg, svgWidth, svgHeight);
     }
 
     drawClk(svg: Svg | G, x: number, y: number, numOfCycle: number, direction: boolean, isIdeal: boolean, isArrow: boolean) {
