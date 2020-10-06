@@ -17,6 +17,7 @@
             <div class="btn inline">
               <span class="material-icons">access_time</span> Add cycle
             </div>
+            <div class="btn inline" v-on:click="draw"> Render</div>
           </div>
         </div>
         <div class="row text-row">
@@ -33,6 +34,7 @@ import { Options, Vue } from "vue-class-component";
 import Header from "@/components/header/header.vue"; // @ is an alias to /src
 import WaveImage from "@/components/wave-img/wave-img.vue";
 import JsonTextBox from "@/components/json-text-box/json-text-box.vue";
+import store from '@/store';
 
 @Options({
   components: {
@@ -41,7 +43,11 @@ import JsonTextBox from "@/components/json-text-box/json-text-box.vue";
     JsonTextBox,
   },
 })
-export default class Home extends Vue {}
+export default class Home extends Vue {
+    draw() {
+        store.commit('drawFromJson');
+    }
+}
 </script>
 
 <style lang="scss">

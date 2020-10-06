@@ -1,5 +1,5 @@
 <template>
-<textarea></textarea>
+<textarea v-model="xWaveDrawingJson"></textarea>
 </template>
 
 <script lang="ts">

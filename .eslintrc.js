@@ -14,6 +14,7 @@ module.exports = {
   rules: {
     'no-console': process.env.NODE_ENV === 'production' ? 'warn' : 'off',
     'no-debugger': process.env.NODE_ENV === 'production' ? 'warn' : 'off',
+    'no-empty': 'warn',
     'no-empty-function': 'warn',
     "@typescript-eslint/no-empty-function": ["warn"],
     'prefer-const': 'warn'
