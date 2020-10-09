@@ -17,6 +17,7 @@ module.exports = {
     'no-empty': 'warn',
     'no-empty-function': 'warn',
     "@typescript-eslint/no-empty-function": ["warn"],
-    'prefer-const': 'warn'
+    'prefer-const': 'warn',
+    '@typescript-eslint/no-inferrable-types': 'off'
   }
 }

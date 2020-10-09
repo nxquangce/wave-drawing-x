@@ -9,13 +9,17 @@ enum SignalType {
     TRANSIT_HIGH,
     TRANSIT_LOW,
     GAP_TRANSIT_HIGH,
-    GAP_TRANSIT_LOW
+    GAP_TRANSIT_LOW,
+    GAP_CLOCK,
+    GAP_HIGH,
+    GAP_LOW
 }
 
 enum GeneralSignalType {
     CLK = 'clk',
     CUSTOM = 'custom',
-    GAP = 'gap'
+    GAP = 'gap',
+    BUS = 'bus'
 }
 
 export class WaveImageTs extends Vue {
@@ -26,6 +30,11 @@ export class WaveImageTs extends Vue {
     totalCycle = 16;
 
     scale = 1;
+
+    cycleAtPointer = {
+        x: 0,
+        y: 0
+    }
 
     colors = ['#E0FEFE', '#C7CEEA', '#FFDAC1', '#FF9AA2', '#FFFFD8', '#B5EAD7', '#CCCCCC', '#FFFFFF', 'x', '#AA2822', '#D4342D', '#F3DDAC', '#E7BF71', '#C09645',
         '#B8860B', '#FFD700', '#019000', '#2AAF2D', '#81EE96'
@@ -42,12 +51,12 @@ export class WaveImageTs extends Vue {
         this.startEventListener(wave, svg);
 
         store.subscribe((mutation, state) => {
-            switch(mutation.type) {
-              case 'drawFromJson':
-                this.drawFromJson(wave, JSON.stringify(waveJson));
-              break;
-            } 
-         })
+            switch (mutation.type) {
+                case 'drawFromJson':
+                    this.drawFromJson(wave, JSON.stringify(waveJson));
+                    break;
+            }
+        })
     }
 
     initSvg(className: string, numOfLane: number, numOfCycle: number) {
@@ -63,7 +72,7 @@ export class WaveImageTs extends Vue {
         svg.viewbox(0, 0, width, height);
     }
 
-    startEventListener(svgBox: Svg, svg: SVGSVGElement) {
+    startEventListener(svgBox: Svg | G, svg: SVGSVGElement) {
         const hoverBox = this.initHoverBox(svgBox);
 
         // Create an SVGPoint for future math
@@ -88,16 +97,40 @@ export class WaveImageTs extends Vue {
         svg.addEventListener('click', (evt) => {
             const loc = cursorPoint(evt);
             console.log(loc.x, loc.y);
+            this.findGroup(svgBox, this.cycleAtPointer.x, this.cycleAtPointer.y)
         }, false);
 
         svg.addEventListener('dblclick', (evt) => {
             const loc = cursorPoint(evt);
             console.log('dbclick')
             console.log(loc.x, loc.y);
+            console.log(evt.target);
         }, false);
     }
 
-    findGroup(x: number, y: number) {
+    findGroup(root: Svg | G, cycleX: number, cycleY: number) {
+        const signal = root.get(0).get(cycleY + 1);
+        const cycle = signal.get(1).get(cycleX);
+        (cycle as G).rect(Wave.baseWidth * 2, Wave.baseHeight + Wave.linePadding).fill('#999999')
+            .move(this.baseX + cycleX * 2 * Wave.baseWidth, this.baseY + cycleY * (Wave.baseHeight + Wave.linePadding) - Wave.linePadding / 2).back();
+        console.log(cycle)
+    }
+
+    issueToHandler(event: string, param: {}) {
+        switch (event) {
+            case 'click': {
+                this.changeSignalLevel(param);
+                break;
+            }
+            case 'dbclick': {
+
+                break;
+            }
+            default: { }
+        }
+    }
+
+    changeSignalLevel(param: {}) {
 
     }
 
@@ -115,10 +148,20 @@ export class WaveImageTs extends Vue {
         return group;
     }
 
+    calCyclePos(x: number, y: number, baseX: number, baseY: number) {
+        const cycleX = parseInt(((x - baseX) / (2 * Wave.baseWidth)).toString());
+        const cycleY = parseInt(((y - baseY) / (Wave.baseHeight + Wave.linePadding)).toString());
+        return { cycleX, cycleY };
+    }
+
     hover(svg: Svg | G, x: number, y: number) {
         const adjH = 4;
-        const boxX = this.baseX + parseInt(((x - this.baseX) / (2 * Wave.baseWidth)).toString()) * 2 * Wave.baseWidth;
-        const boxY = this.baseY + parseInt(((y - this.baseY) / (Wave.baseHeight + Wave.linePadding)).toString()) * (Wave.baseHeight + Wave.linePadding);
+        const { cycleX, cycleY } = this.calCyclePos(x, y, this.baseX, this.baseY);
+        this.cycleAtPointer.x = cycleX;
+        this.cycleAtPointer.y = cycleY;
+        console.log(cycleX, cycleY)
+        const boxX = this.baseX + cycleX * 2 * Wave.baseWidth;
+        const boxY = this.baseY + cycleY * (Wave.baseHeight + Wave.linePadding);
         svg.move(boxX, boxY - adjH);
     }
 
@@ -129,6 +172,7 @@ export class WaveImageTs extends Vue {
         let svgHeight = svg.height();
         let adjustedWaveJson = wave.groups ? wave : { groups: [{ name: '', signals: wave.signals }] };
         console.log(adjustedWaveJson);
+
         if (adjustedWaveJson.groups as any[]) {
             this.baseX = 105;
             adjustedWaveJson.groups.forEach((group: any, groupIndex: number) => {
@@ -179,7 +223,16 @@ export class WaveImageTs extends Vue {
                                 break;
                             }
                             case 'gap': {
-
+                                const parsedGapType = this.calGapType(signal.wave[waveIndex - 1]);
+                                console.log(parsedGapType)
+                                this.drawGap(
+                                    signalWaveG,
+                                    this.baseX + waveDes.from * (Wave.baseWidth * 2),
+                                    signalBaseY,
+                                    numOfCycle,
+                                    parsedGapType,
+                                    waveDes.isIdeal
+                                );
                                 break;
                             }
                             case null:
@@ -192,11 +245,18 @@ export class WaveImageTs extends Vue {
             });
         }
 
+        this.drawBaseLines(svg, svgHeight / (Wave.baseHeight + Wave.linePadding))
         this.resizeSvg(svg, svgWidth, svgHeight);
+    }
+
+    drawBaseLines(svg: Svg | G, numOfSignals: number) {
+        for (let i = 0; i <= this.totalCycle; i++)
+            Wave.baseLine(svg, this.baseX + i * Wave.baseWidth * 2, this.baseY - Wave.linePadding, numOfSignals);
     }
 
     wavedromParse(json: any) {
         let xWaveJson: any = {};
+        let maxCycle = 0;
         json.signal.forEach((sigEl: any) => {
             if (sigEl.constructor === "string".constructor) {
                 xWaveJson['name'] = sigEl;
@@ -210,8 +270,12 @@ export class WaveImageTs extends Vue {
                 const xSignalJson = this.wavedromParseSignal(sigEl);
                 if (!xWaveJson['signals']) xWaveJson['signals'] = [];
                 xWaveJson['signals'].push(xSignalJson);
+
+                maxCycle = (sigEl.wave?.length ?? 0 > maxCycle) ? sigEl.wave.length : maxCycle;
             }
         });
+
+        this.totalCycle = maxCycle;
         return xWaveJson;
     }
 
@@ -352,17 +416,30 @@ export class WaveImageTs extends Vue {
     }
 
     calSignalType(before: any, current: any) {
-        let result = '';
-        if (before) {
-            result += before.value.toString() + current.value.toString();
-        }
-        else {
-            result += current.value.toString() + current.value.toString();
-        }
+        const result = before ?
+            before.value.toString() + current.value.toString() :
+            current.value.toString() + current.value.toString();
         return result;
     }
 
-    drawCycle(svg: Svg | G, x: number, y: number, numOfCycle: number, type: SignalType, isIdeal: boolean) {
+    calGapType(before: any) {
+        switch (before.type) {
+            case GeneralSignalType.CUSTOM: {
+                return before.value.toString();
+            }
+            case GeneralSignalType.CLK: {
+                let result = before.isPosEdge ? 'p' : 'n';
+                result = before.isArrow ? result.toUpperCase() : result;
+                result += before.isIdeal ? 'i' : '';
+                return result;
+            }
+            case GeneralSignalType.BUS: {
+                return 'b';
+            }
+        }
+    }
+
+    drawCycle(svg: Svg | G, x: number, y: number, numOfCycle: number, type: SignalType, isIdeal: boolean, isArrow: boolean = true) {
         for (let i = 0; i < numOfCycle; i++) {
             switch (type) {
                 case SignalType.HIGH: {
@@ -401,6 +478,17 @@ export class WaveImageTs extends Vue {
                     Wave.gapTransitLowCycle(svg, x + i * 2 * Wave.baseWidth, y, '#000000');
                     break;
                 }
+                case SignalType.GAP_HIGH: {
+                    Wave.gapHighCycle(svg, x + i * 2 * Wave.baseWidth, y, '#000000');
+                    break;
+                }
+                case SignalType.GAP_LOW: {
+                    Wave.gapLowCycle(svg, x + i * 2 * Wave.baseWidth, y, '#000000');
+                    break;
+                }
+                case SignalType.GAP_CLOCK: {
+                    Wave.gapPosClock(svg, x + i * 2 * Wave.baseWidth, y, isArrow, '#000000');
+                }
             }
         }
     }
@@ -423,6 +511,26 @@ export class WaveImageTs extends Vue {
             }
             case '11': {
                 this.drawCycle(svg, x, y, numOfCycle, SignalType.HIGH, isIdeal);
+                break;
+            }
+        }
+    }
+
+    drawGap(svg: Svg | G, x: number, y: number, numOfCycle: number, typeOfPreCycle: string, isIdeal: boolean) {
+        switch (typeOfPreCycle) {
+            case '0': {
+                this.drawCycle(svg, x, y, numOfCycle, SignalType.GAP_LOW, isIdeal);
+                break;
+            }
+            case '1': {
+                this.drawCycle(svg, x, y, numOfCycle, SignalType.GAP_HIGH, isIdeal);
+                break;
+            }
+            case 'P':
+            case 'Pi':
+            case 'p':
+            case 'pi': {
+                this.drawCycle(svg, x, y, numOfCycle, SignalType.GAP_CLOCK, isIdeal);
                 break;
             }
         }
