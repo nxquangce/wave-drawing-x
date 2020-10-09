@@ -47,7 +47,8 @@ export class WaveDrawing {
     }
 
     public static baseLine(svg: Svg | G, x: number, y: number, numOfLine: number) {
-        return svg.line(x, y, x, y + numOfLine * (this.baseHeight + this.linePadding)).stroke({ width: 0.5, dasharray: '1, 3', color: '#000000' });
+        return svg.line(x, y - this.linePadding / 2, x, y + numOfLine * (this.baseHeight + this.linePadding) + this.linePadding)
+            .stroke({ width: 0.5, dasharray: '1, 3', color: '#000000' });
     }
 
     public static edgeIdeal(svg: Svg | G, x: number, y: number, arrow: boolean = false, arrowDirection?: EdgeType) {
@@ -201,7 +202,7 @@ export class WaveDrawing {
         return group;
     }
 
-    public static doubleCurve(svg: Svg | G, x: number, y: number, fillColor: string = 'none') {
+    public static doubleCurve(svg: Svg | G, x: number, y: number, strokeColor: string = 'none') {
         const curveWidth = 4;
         const stretchHeight = 4;
         const x1 = x - 2;
@@ -226,9 +227,9 @@ export class WaveDrawing {
             + x2 + ',' + (y + this.baseHeight / 2) + ' '
             + (x2 + curveWidth / 2) + ',' + (y + 1 - stretchHeight) + ' '
             + (x2 + curveWidth) + ',' + (y - stretchHeight);
-        svg.path(curveSpace).stroke('none').fill(fillColor);
-        svg.path(curve1).stroke({ width: this.strokeWidth, color: '#000000' }).fill('none');
-        svg.path(curve2).stroke({ width: this.strokeWidth, color: '#000000' }).fill('none');
+        svg.path(curveSpace).stroke('none').fill('none');
+        svg.path(curve1).stroke({ width: this.strokeWidth, color: strokeColor }).fill('none');
+        svg.path(curve2).stroke({ width: this.strokeWidth, color: strokeColor }).fill('none');
     }
 
     public static gapPosClockIdeal(svg: Svg | G, x: number, y: number, arrow: boolean = false) {
@@ -247,22 +248,38 @@ export class WaveDrawing {
         this.lowIdeal(group, x + this.baseWidth, y);
     }
 
-    public static gapPosClock(svg: Svg | G, x: number, y: number, arrow: boolean = false, fillColor: string = 'none') {
+    public static gapPosClock(svg: Svg | G, x: number, y: number, arrow: boolean = false, strokeColor: string = '#000000') {
         const group = svg.group();
         this.edgeRising(group, x, y, arrow);
         this.high(group, x, y);
         this.edgeFalling(group, x + this.baseWidth, y, false);
-        this.doubleCurve(group, x + this.baseWidth, y, fillColor);
+        this.doubleCurve(group, x + this.baseWidth, y, strokeColor);
         this.low(group, x + this.baseWidth, y);
     }
 
-    public static gapNegClock(svg: Svg | G, x: number, y: number, arrow: boolean = false, fillColor: string = 'none') {
+    public static gapNegClock(svg: Svg | G, x: number, y: number, arrow: boolean = false, strokeColor: string = '#000000') {
         const group = svg.group();
         this.edgeFalling(group, x, y, arrow);
         this.low(group, x, y);
         this.edgeRising(group, x + this.baseWidth, y, false);
-        this.doubleCurve(group, x + this.baseWidth, y, fillColor);
+        this.doubleCurve(group, x + this.baseWidth, y, strokeColor);
         this.high(group, x + this.baseWidth, y);
+    }
+
+    public static gapHighCycle(svg: Svg | G, x: number, y: number, strokeColor: string) {
+        const startTransit = 2;
+        const group = svg.group();
+        this.highCycle(group, x, y);
+        this.doubleCurve(group, x + this.baseWidth + startTransit + this.transitionWidth, y, strokeColor)
+        return group;
+    }
+
+    public static gapLowCycle(svg: Svg | G, x: number, y: number, strokeColor: string) {
+        const startTransit = 2;
+        const group = svg.group();
+        this.lowCycle(group, x, y);
+        this.doubleCurve(group, x + this.baseWidth + startTransit + this.transitionWidth, y, strokeColor)
+        return group;
     }
 
     public static gapTransitHighCycle(svg: Svg | G, x: number, y: number, fillColor: string) {
