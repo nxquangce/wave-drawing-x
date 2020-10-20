@@ -1,5 +1,5 @@
 <template>
-<textarea v-model="xWaveDrawingJson"></textarea>
+<textarea id="waveJson" v-model="xWaveDrawingJson" @input="onJsonStringChange()"></textarea>
 </template>
 
 <script lang="ts">

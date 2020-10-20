@@ -6,6 +6,7 @@ export default createStore({
         {
             signal: [
                 { name: 'clk', wave: 'P.....|...' },
+                { name: 'clk', wave: 'N.....|...' },
                 // {name: 'dat', wave: 'x.345x|=.x', data: ['head', 'body', 'tail', 'data']},
                 { name: 'req', wave: '0.1..0|1.0' },
                 {},

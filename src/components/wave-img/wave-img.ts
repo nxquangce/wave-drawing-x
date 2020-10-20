@@ -10,7 +10,10 @@ enum SignalType {
     TRANSIT_LOW,
     GAP_TRANSIT_HIGH,
     GAP_TRANSIT_LOW,
-    GAP_CLOCK,
+    GAP_CLOCK_POS_IDEAL,
+    GAP_CLOCK_NEG_IDEAL,
+    GAP_CLOCK_POS,
+    GAP_CLOCK_NEG,
     GAP_HIGH,
     GAP_LOW
 }
@@ -23,6 +26,8 @@ enum GeneralSignalType {
 }
 
 export class WaveImageTs extends Vue {
+
+    wave: Svg | undefined;
 
     baseX = 5;
     baseY = 5;
@@ -41,22 +46,28 @@ export class WaveImageTs extends Vue {
     ];
 
     mounted() {
+        this.initRenderSvg();
+
+        store.subscribe((mutation, state) => {
+            switch (mutation.type) {
+                case 'drawFromJson':
+                    this.wave?.remove();
+                    this.initRenderSvg();
+                    break;
+            }
+        })
+    }
+
+    initRenderSvg() {
         const waveClassName = '#wave-space';
-        const wave = this.initSvg(waveClassName, 1, 1);
+        this.wave = this.initSvg(waveClassName, 1, 1);
+        const wave = this.wave;
         const waveJson = store.state.waveDesJson;
         this.drawFromJson(wave, JSON.stringify(waveJson));
 
         // Find your root SVG element
         const svg = document.querySelector('svg') as SVGSVGElement;
         this.startEventListener(wave, svg);
-
-        store.subscribe((mutation, state) => {
-            switch (mutation.type) {
-                case 'drawFromJson':
-                    this.drawFromJson(wave, JSON.stringify(waveJson));
-                    break;
-            }
-        })
     }
 
     initSvg(className: string, numOfLane: number, numOfCycle: number) {
@@ -194,12 +205,13 @@ export class WaveImageTs extends Vue {
                         const signalBaseY = this.baseY + baseGroupY + signalIndex * (Wave.baseHeight + Wave.linePadding);
                         svgHeight = signalBaseY + Wave.baseHeight + Wave.linePadding;
                         svgWidth = this.baseX + this.totalCycle * Wave.baseWidth * 2;
+                        const xStart = this.baseX + waveDes.from * (Wave.baseWidth * 2);
 
                         switch (waveDes.type) {
                             case "clk": {
                                 this.drawClk(
                                     signalWaveG,
-                                    this.baseX,
+                                    xStart,
                                     signalBaseY,
                                     numOfCycle,
                                     waveDes.isPosEdge,
@@ -214,7 +226,7 @@ export class WaveImageTs extends Vue {
                                 const parsedType = this.calSignalType(signal.wave[beforeWaveIndex], waveDes);
                                 this.drawSignal(
                                     signalWaveG,
-                                    this.baseX + waveDes.from * (Wave.baseWidth * 2),
+                                    xStart,
                                     signalBaseY,
                                     numOfCycle,
                                     parsedType,
@@ -227,7 +239,7 @@ export class WaveImageTs extends Vue {
                                 console.log(parsedGapType)
                                 this.drawGap(
                                     signalWaveG,
-                                    this.baseX + waveDes.from * (Wave.baseWidth * 2),
+                                    xStart,
                                     signalBaseY,
                                     numOfCycle,
                                     parsedGapType,
@@ -245,7 +257,7 @@ export class WaveImageTs extends Vue {
             });
         }
 
-        this.drawBaseLines(svg, svgHeight / (Wave.baseHeight + Wave.linePadding))
+        this.drawBaseLines(svg, svgHeight / (Wave.baseHeight + Wave.linePadding));
         this.resizeSvg(svg, svgWidth, svgHeight);
     }
 
@@ -271,7 +283,7 @@ export class WaveImageTs extends Vue {
                 if (!xWaveJson['signals']) xWaveJson['signals'] = [];
                 xWaveJson['signals'].push(xSignalJson);
 
-                maxCycle = (sigEl.wave?.length ?? 0 > maxCycle) ? sigEl.wave.length : maxCycle;
+                maxCycle = ((sigEl.wave?.length ?? 0) > maxCycle) ? sigEl.wave.length : maxCycle;
             }
         });
 
@@ -486,8 +498,21 @@ export class WaveImageTs extends Vue {
                     Wave.gapLowCycle(svg, x + i * 2 * Wave.baseWidth, y, '#000000');
                     break;
                 }
-                case SignalType.GAP_CLOCK: {
+                case SignalType.GAP_CLOCK_POS: {
                     Wave.gapPosClock(svg, x + i * 2 * Wave.baseWidth, y, isArrow, '#000000');
+                    break;
+                }
+                case SignalType.GAP_CLOCK_POS_IDEAL: {
+                    Wave.gapPosClockIdeal(svg, x + i * 2 * Wave.baseWidth, y, isArrow, '#000000');
+                    break;
+                }
+                case SignalType.GAP_CLOCK_NEG: {
+                    Wave.gapNegClock(svg, x + i * 2 * Wave.baseWidth, y, isArrow, '#000000');
+                    break;
+                }
+                case SignalType.GAP_CLOCK_NEG_IDEAL: {
+                    Wave.gapNegClockIdeal(svg, x + i * 2 * Wave.baseWidth, y, isArrow, '#000000');
+                    break;
                 }
             }
         }
@@ -526,11 +551,36 @@ export class WaveImageTs extends Vue {
                 this.drawCycle(svg, x, y, numOfCycle, SignalType.GAP_HIGH, isIdeal);
                 break;
             }
-            case 'P':
-            case 'Pi':
-            case 'p':
+            case 'P': {
+                this.drawCycle(svg, x, y, numOfCycle, SignalType.GAP_CLOCK_POS, false, true);
+                break;
+            }
+            case 'Pi': {
+                this.drawCycle(svg, x, y, numOfCycle, SignalType.GAP_CLOCK_POS_IDEAL, true, true);
+                break;
+            }
+            case 'p': {
+                this.drawCycle(svg, x, y, numOfCycle, SignalType.GAP_CLOCK_POS, false, false);
+                break;
+            }
             case 'pi': {
-                this.drawCycle(svg, x, y, numOfCycle, SignalType.GAP_CLOCK, isIdeal);
+                this.drawCycle(svg, x, y, numOfCycle, SignalType.GAP_CLOCK_POS_IDEAL, true, false);
+                break;
+            }
+            case 'N': {
+                this.drawCycle(svg, x, y, numOfCycle, SignalType.GAP_CLOCK_NEG, false, true);
+                break;
+            }
+            case 'Ni': {
+                this.drawCycle(svg, x, y, numOfCycle, SignalType.GAP_CLOCK_NEG_IDEAL, true, true);
+                break;
+            }
+            case 'n': {
+                this.drawCycle(svg, x, y, numOfCycle, SignalType.GAP_CLOCK_NEG, false, false);
+                break;
+            }
+            case 'ni': {
+                this.drawCycle(svg, x, y, numOfCycle, SignalType.GAP_CLOCK_NEG_IDEAL, true, false);
                 break;
             }
         }
