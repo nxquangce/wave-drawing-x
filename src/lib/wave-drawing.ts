@@ -234,36 +234,26 @@ export class WaveDrawing {
 
     public static gapPosClockIdeal(svg: Svg | G, x: number, y: number, arrow: boolean = false, strokeColor: string = '#000000', fillColor: string = '#FFFFFF') {
         const group = svg.group();
-        this.edgeIdeal(group, x, y, arrow, EdgeType.RISING);
-        this.highIdeal(group, x, y);
+        this.posClockIdeal(group, x, y, arrow);
         this.doubleCurve(group, x + this.baseWidth, y, strokeColor, fillColor);
-        this.lowIdeal(group, x + this.baseWidth, y);
     }
 
     public static gapNegClockIdeal(svg: Svg | G, x: number, y: number, arrow: boolean = false, strokeColor: string = '#000000', fillColor: string = '#FFFFFF') {
         const group = svg.group();
-        this.edgeIdeal(group, x, y, arrow, EdgeType.FALLING);
-        this.highIdeal(group, x, y);
+        this.negClockIdeal(group, x, y, arrow);
         this.doubleCurve(group, x + this.baseWidth, y, strokeColor, fillColor);
-        this.lowIdeal(group, x + this.baseWidth, y);
     }
 
     public static gapPosClock(svg: Svg | G, x: number, y: number, arrow: boolean = false, strokeColor: string = '#000000', fillColor: string = '#FFFFFF') {
         const group = svg.group();
-        this.edgeRising(group, x, y, arrow);
-        this.high(group, x, y);
-        this.edgeFalling(group, x + this.baseWidth, y, false);
+        this.posClock(group, x, y, arrow);
         this.doubleCurve(group, x + this.baseWidth, y, strokeColor, fillColor);
-        this.low(group, x + this.baseWidth, y);
     }
 
     public static gapNegClock(svg: Svg | G, x: number, y: number, arrow: boolean = false, strokeColor: string = '#000000', fillColor: string = '#FFFFFF') {
         const group = svg.group();
-        this.edgeFalling(group, x, y, arrow);
-        this.low(group, x, y);
-        this.edgeRising(group, x + this.baseWidth, y, false);
+        this.negClock(group, x, y, arrow);
         this.doubleCurve(group, x + this.baseWidth, y, strokeColor, fillColor);
-        this.high(group, x + this.baseWidth, y);
     }
 
     public static gapHighCycle(svg: Svg | G, x: number, y: number, strokeColor: string = '#000000', fillColor: string = '#FFFFFF') {
